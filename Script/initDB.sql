@@ -1,4 +1,26 @@
--- 1. CREATION DES TABLES
+USE master;
+GO
+
+-- On reste sur le nom d'origine que tu as utilisé pour tes deux projets
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'PadelDB')
+BEGIN
+    CREATE DATABASE PadelDB;
+END
+GO
+
+USE PadelDB;
+GO
+
+-- 2. SUPPRESSION DES TABLES (dans l'ordre inverse des dépendances)
+IF OBJECT_ID('Participation', 'U') IS NOT NULL DROP TABLE Participation;
+IF OBJECT_ID('Fermeture', 'U') IS NOT NULL DROP TABLE Fermeture;
+IF OBJECT_ID('Match', 'U') IS NOT NULL DROP TABLE Match;
+IF OBJECT_ID('Membre', 'U') IS NOT NULL DROP TABLE Membre;
+IF OBJECT_ID('Terrain', 'U') IS NOT NULL DROP TABLE Terrain;
+IF OBJECT_ID('Site', 'U') IS NOT NULL DROP TABLE Site;
+GO
+
+-- 3. CREATION DES TABLES
 CREATE TABLE Site (
     IdSite INT PRIMARY KEY IDENTITY(1,1),
     Nom VARCHAR(50) NOT NULL,
@@ -47,6 +69,6 @@ CREATE TABLE Participation (
 CREATE TABLE Fermeture (
     IdFermeture INT PRIMARY KEY IDENTITY(1,1),
     DateFermeture DATE NOT NULL,
-    IdSite INT NULL, -- NULL si fermeture globale
+    IdSite INT NULL,
     CONSTRAINT FK_Ferm_Site FOREIGN KEY (IdSite) REFERENCES Site(IdSite)
 );
