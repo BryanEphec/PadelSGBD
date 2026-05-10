@@ -1,10 +1,20 @@
 version: '3.8'
+
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: mssql_padel
+    # 1. Limite matérielle (ce que Docker s'autorise à prendre)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    environment:
+      # 2. Limite logicielle (ce que SQL Server s'autorise à utiliser)
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Saeko1709
+      - MSSQL_MEMORY_LIMIT_MB=1500  # On laisse un peu de marge pour le système
+      - MSSQL_TCP_PORT=1433
     ports:
       - "1440:1433"
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=Saeko1709 # Change-le si tu veux
+    restart: always

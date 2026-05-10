@@ -9,5 +9,8 @@ namespace Padel.SGBD.Api.Data
         {
             
         }
+        public DbSet<Model.Site> Sites { get; set; }
+        public DbSet<Model.Membre> Membres { get; set; }
+        public DbSet<Model.Terrain> Terrains { get; set; }
     }
 }
