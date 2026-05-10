@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Padel.SGBD.Api.Model;
 
 
 namespace Padel.SGBD.Api.Data
@@ -9,8 +10,20 @@ namespace Padel.SGBD.Api.Data
         {
             
         }
-        public DbSet<Model.Site> Sites { get; set; }
-        public DbSet<Model.Membre> Membres { get; set; }
-        public DbSet<Model.Terrain> Terrains { get; set; }
+        public DbSet<Site> Site { get; set; }
+        public DbSet<Membre> Membre { get; set; }
+        public DbSet<Terrain> Terrain { get; set; }
+        public DbSet<Match> Match { get; set; }
+        public DbSet<Participations> Participations { get; set; }
+        public DbSet<Fermeture> Fermeture { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // CONFIGURATION CRUCIALE : Clé composite pour Participation
+            modelBuilder.Entity<Participations>().ToTable("Participation")
+                .HasKey(p => new { p.Matricule, p.IdMatch });
+
+            base.OnModelCreating(modelBuilder);
+        }
     }
 }
