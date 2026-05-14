@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Padel.SGBD.Api.Data;
 using Padel.SGBD.Api.Model;
+using Padel.SGBD.Api.Dtos;
 
 namespace Padel.SGBD.Api.Controllers
 {
@@ -34,8 +35,14 @@ namespace Padel.SGBD.Api.Controllers
 
         // POST: api/Terrain
         [HttpPost]
-        public async Task<ActionResult<Terrain>> PostTerrain(Terrain terrain)
+        public async Task<ActionResult<Terrain>> PostTerrain(TerrainCreateDtos dto)
         {
+            var terrain = new Terrain
+            {
+                Nom_Terrain = dto.Nom_Terrain,
+                IdSite = dto.IdSite,
+                Type = dto.Type
+            };
             _context.Terrains.Add(terrain);
             await _context.SaveChangesAsync();
 
