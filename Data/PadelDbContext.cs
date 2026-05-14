@@ -12,13 +12,14 @@ namespace Padel.SGBD.Api.Data
         }
         public DbSet<Site> Site { get; set; }
         public DbSet<Membre> Membre { get; set; }
-        public DbSet<Terrain> Terrain { get; set; }
+        public DbSet<Terrain> Terrains { get; set; }
         public DbSet<Match> Match { get; set; }
         public DbSet<Participations> Participations { get; set; }
         public DbSet<Fermeture> Fermeture { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<Terrain>().ToTable("Terrain");
             // CONFIGURATION CRUCIALE : Clé composite pour Participation
             modelBuilder.Entity<Participations>().ToTable("Participation")
                 .HasKey(p => new { p.Matricule, p.IdMatch });
