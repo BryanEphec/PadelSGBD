@@ -13,5 +13,8 @@ namespace Padel.SGBD.Api.Model
 
         public TimeOnly HOuverture{ get; set; }
         public TimeOnly HFermeture { get; set; }
+
+        public virtual ICollection<Terrain> Terrains { get; set; } = new List<Terrain>();
            }
+
 }

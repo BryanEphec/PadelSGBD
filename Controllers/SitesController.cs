@@ -21,7 +21,7 @@ namespace Padel.SGBD.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Site>>> GetSites()
         {
-            return await _context.Site.ToListAsync();
+            return await _context.Site.Include(s => s.Terrains).ToListAsync();
         }
 
         [HttpPost]
@@ -75,7 +75,8 @@ namespace Padel.SGBD.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Site>> GetSite(int id)
         {
-            var site = await _context.Site.FindAsync(id);
+            var site = await _context.Site.Include(s => s.Terrains)
+                .FirstOrDefaultAsync(s => s.IdSite == id);
 
             if (site == null)
             {
