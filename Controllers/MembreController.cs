@@ -47,5 +47,11 @@ namespace Padel.SGBD.Api.Controllers
             }
             return Ok(membre);
         }
+        [HttpGet]
+        public IActionResult GetAllMembres()
+        {
+            var membres = _context.Membres.ToList();
+            return Ok(membres);
+        }
     }
 }
