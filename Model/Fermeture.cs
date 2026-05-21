@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Padel.SGBD.Api.Model
 {
+    [Table("Fermeture")]
     public class Fermeture
     {
         [Key]
