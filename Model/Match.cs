@@ -3,9 +3,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Padel.SGBD.Api.Model
 {
+    [Table("Match")]
     public class Match
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int IdMatch { get; set; }
 
         public bool EstPrive { get; set; }
