@@ -11,7 +11,7 @@ namespace Padel.SGBD.Api.Data
             
         }
         public DbSet<Site> Site { get; set; }
-        public DbSet<Membre> Membre { get; set; }
+        public DbSet<Membre> Membres { get; set; }
         public DbSet<Terrain> Terrains { get; set; }
         public DbSet<Match> Match { get; set; }
         public DbSet<Participations> Participations { get; set; }
