@@ -33,4 +33,11 @@ using (var scope = app.Services.CreateScope())
     // Cette ligne vérifie si la DB existe, sinon elle la crée
     context.Database.EnsureCreated();
 }
+
+app.MapGet("/", async context =>
+{
+    context.Response.Redirect("/scalar/v1");
+    await Task.CompletedTask;
+});
+
 app.Run();
