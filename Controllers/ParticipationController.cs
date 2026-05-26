@@ -1,10 +1,11 @@
 namespace Padel.SGBD.Api.Controllers
 {
-    using 
-        Microsoft.AspNetCore.Mvc;
+    using Microsoft.AspNetCore.Mvc;
     using Padel.SGBD.Api.Data;
     using Padel.SGBD.Api.Dtos;
     using Padel.SGBD.Api.Model;
+    using System.Linq;
+    using System;
 
     [ApiController]
     [Route("api/[controller]")]
@@ -18,7 +19,7 @@ namespace Padel.SGBD.Api.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateParticipation([FromBody] ParticipationCreateDto participationDto)
+        public IActionResult CreateParticipation([FromBody] ParticipationCreateDtos participationDto)
         {
             if (participationDto == null)
             {
@@ -39,18 +40,32 @@ namespace Padel.SGBD.Api.Controllers
                 return NotFound($"Match with Id {participationDto.IdMatch} not found.");
             }
 
-            // Créer la participation
-            var participation = new Participations
+            // Bloc unique pour la création et la gestion du Trigger SQL
+            try
             {
-                Matricule = participationDto.Matricule,
-                IdMatch = participationDto.IdMatch,
-                EstOrganisateur = participationDto.EstOrganisateur
-            };
+                var participation = new Participations
+                {
+                    Matricule = participationDto.Matricule,
+                    IdMatch = participationDto.IdMatch,
+                    EstOrganisateur = participationDto.EstOrganisateur
+                };
 
-            _context.Participations.Add(participation);
-            _context.SaveChanges();
+                _context.Participations.Add(participation);
+                _context.SaveChanges();
 
-            return CreatedAtAction(nameof(GetParticipation), new { matricule = participation.Matricule, idMatch = participation.IdMatch }, participation);
+                return CreatedAtAction(nameof(GetParticipation), 
+                    new { matricule = participation.Matricule, idMatch = participation.IdMatch }, 
+                    participation);
+            }
+            catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 50000)
+            {
+                // Capture spécifique du RAISERROR du Trigger SQL
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Une erreur inattendue est survenue lors de l'inscription.");
+            }
         }
 
         [HttpGet("{matricule}/{idMatch}")]
@@ -63,6 +78,7 @@ namespace Padel.SGBD.Api.Controllers
             }
             return Ok(participation);
         }
+
         [HttpDelete("{matricule}/{idMatch}")]
         public IActionResult DeleteParticipation(string matricule, int idMatch)
         {
@@ -75,8 +91,9 @@ namespace Padel.SGBD.Api.Controllers
             _context.SaveChanges();
             return NoContent();
         }
+
         [HttpPut("{matricule}/{idMatch}")]
-        public IActionResult UpdateParticipation(string matricule, int idMatch, [FromBody] ParticipationCreateDto participationDto)
+        public IActionResult UpdateParticipation(string matricule, int idMatch, [FromBody] ParticipationCreateDtos participationDto)
         {
             if (participationDto == null)
             {
@@ -89,7 +106,6 @@ namespace Padel.SGBD.Api.Controllers
                 return NotFound($"Participation with Matricule {matricule} and IdMatch {idMatch} not found.");
             }
 
-            // Mettre à jour les propriétés de la participation
             participation.EstOrganisateur = participationDto.EstOrganisateur;
 
             _context.Participations.Update(participation);
@@ -97,12 +113,12 @@ namespace Padel.SGBD.Api.Controllers
 
             return NoContent();
         }
+
         [HttpGet]
         public IActionResult GetAllParticipations()
         {
             var participations = _context.Participations.ToList();
             return Ok(participations);
         }
-    }    
-
+    }
 }
