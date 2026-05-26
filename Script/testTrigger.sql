@@ -1,0 +1,1 @@
+UPDATE Membre SET SousPenalite = 0 WHERE Matricule = 'C61CCAA';
