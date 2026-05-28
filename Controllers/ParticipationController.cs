@@ -40,7 +40,7 @@ namespace Padel.SGBD.Api.Controllers
                 return NotFound($"Match with Id {participationDto.IdMatch} not found.");
             }
 
-            // Bloc unique pour la création et la gestion du Trigger SQL
+           // Bloc unique pour la création et la gestion du Trigger SQL
             try
             {
                 var participation = new Participations
@@ -57,10 +57,17 @@ namespace Padel.SGBD.Api.Controllers
                     new { matricule = participation.Matricule, idMatch = participation.IdMatch }, 
                     participation);
             }
-            catch (Microsoft.Data.SqlClient.SqlException ex) when (ex.Number == 50000)
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
             {
-                // Capture spécifique du RAISERROR du Trigger SQL
-                return BadRequest(ex.Message);
+                // On vérifie si l'erreur d'origine (InnerException) est bien notre erreur SQL 50000
+                if (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx && sqlEx.Number == 50000)
+                {
+                    // On renvoie un code 400 avec le texte exact du RAISERROR
+                    return BadRequest(sqlEx.Message);
+                }
+                
+                // Si c'est une autre erreur de base de données
+                return StatusCode(500, "Erreur de base de données : " + ex.InnerException?.Message);
             }
             catch (Exception)
             {

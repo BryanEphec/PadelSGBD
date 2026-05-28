@@ -11,7 +11,13 @@ builder.Services.AddDbContext<PadelSGBDContext>(options =>
 
 builder.Services.AddControllers(); 
 builder.Services.AddOpenApi();
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular",
+        policy => policy.WithOrigins("http://localhost:4200") // Le port de ton Angular
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
+});
 var app = builder.Build();
 
 // 2. Middleware (Configuration du pipeline)
@@ -39,5 +45,5 @@ app.MapGet("/", async context =>
     context.Response.Redirect("/scalar/v1");
     await Task.CompletedTask;
 });
-
+app.UseCors("AllowAngular");
 app.Run();
