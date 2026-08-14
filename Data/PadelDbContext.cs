@@ -9,16 +9,25 @@ namespace Padel.SGBD.Api.Data
         {
         }
 
-        public DbSet<Site> Sites { get; set; }
+        // On garde les noms singuliers/pluriels compatibles avec tes contrôleurs existants
+        public DbSet<Site> Site { get; set; }
         public DbSet<Membre> Membres { get; set; }
         public DbSet<Terrain> Terrains { get; set; }
-        public DbSet<Match> Matchs { get; set; }
+        public DbSet<Match> Match { get; set; }
         public DbSet<Participations> Participations { get; set; }
-        public DbSet<Fermeture> Fermetures { get; set; }
+        public DbSet<Fermeture> Fermeture { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Noms explicites des tables
+            modelBuilder.Entity<Site>().ToTable("Site");
+            modelBuilder.Entity<Terrain>().ToTable("Terrain");
+            modelBuilder.Entity<Membre>().ToTable("Membre");
+            modelBuilder.Entity<Match>().ToTable("Match");
+            modelBuilder.Entity<Participations>().ToTable("Participation");
+            modelBuilder.Entity<Fermeture>().ToTable("Fermeture");
 
             // 1. Clé composite pour Participation
             modelBuilder.Entity<Participations>()

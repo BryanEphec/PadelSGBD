@@ -19,9 +19,6 @@ namespace Padel.SGBD.Api.Model
         [MaxLength(100)]
         public string Prenom { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Type de membre : 'G' (Global), 'S' (Site), 'L' (Libre)
-        /// </summary>
         [Required]
         [MaxLength(1)]
         public string Type { get; set; } = string.Empty;
@@ -29,12 +26,27 @@ namespace Padel.SGBD.Api.Model
         public int? IdSiteRatt { get; set; }
 
         [ForeignKey("IdSiteRatt")]
-        public Site? SiteRattachement { get; set; }
+        public Site? Site { get; set; }
 
-        
         public DateTime? DateFinPenalite { get; set; }
 
-        
+       [NotMapped]
+        public bool SousPenalite
+        {
+            get => DateFinPenalite.HasValue && DateFinPenalite.Value > DateTime.Now;
+            set
+        {
+            if (value)
+            {
+            DateFinPenalite = DateTime.Now.AddDays(7);
+            }
+            else
+            {
+            DateFinPenalite = null;
+        }
+    }
+}
+
         [Column(TypeName = "decimal(10,2)")]
         public decimal SoldeDu { get; set; } = 0m;
 
