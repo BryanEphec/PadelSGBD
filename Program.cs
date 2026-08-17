@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Padel.SGBD.Api.Data;
+using Padel.SGBD.Api.Repositories;
+using Padel.SGBD.Api.Repositories.Interfaces;
+using Padel.SGBD.Api.Services;
+using Padel.SGBD.Api.Services.Interfaces;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +22,10 @@ builder.Services.AddCors(options =>
                         .AllowAnyMethod()
                         .AllowAnyHeader());
 });
+builder.Services.AddScoped<IMatchRepository, MatchRepository>();
+builder.Services.AddScoped<IMembreRepository, MembreRepository>();
+
+builder.Services.AddScoped<IMatchService, MatchService>();
 var app = builder.Build();
 
 // 2. Middleware (Configuration du pipeline)

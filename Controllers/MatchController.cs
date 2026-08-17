@@ -1,63 +1,82 @@
+using Microsoft.AspNetCore.Mvc;
+using Padel.SGBD.Api.Dtos;
+using Padel.SGBD.Api.Services.Interfaces;
+
 namespace Padel.SGBD.Api.Controllers
 {
-    using Microsoft.AspNetCore.Mvc;
-    using Padel.SGBD.Api.Data;
-    using Padel.SGBD.Api.Model;
-    using Padel.SGBD.Api.Dtos;
     [ApiController]
     [Route("api/[controller]")]
     public class MatchController : ControllerBase
     {
-        private readonly PadelSGBDContext _context;
+        private readonly IMatchService _matchService;
 
-        public MatchController(PadelSGBDContext context)
+        public MatchController(IMatchService matchService)
         {
-            _context = context;
+            _matchService = matchService;
         }
 
-        [HttpPost]
-        public IActionResult CreateMatch(MatchCreateDtos matchDto)
+        [HttpGet]
+        public async Task<IActionResult> GetAllMatches()
         {
-            var match = new Match
-            {
-                EstPrive = matchDto.EstPrive,
-                IdTerrain = matchDto.IdTerrain,
-                DateHeure = matchDto.DateHeure
-            };
-
-            _context.Match.Add(match);
-            _context.SaveChanges();
-
-            return CreatedAtAction(nameof(GetMatchById), new { id = match.IdMatch }, match);
+            var matches = await _matchService.GetAllMatchesAsync();
+            return Ok(matches);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetMatchById(int id)
+        public async Task<IActionResult> GetMatchById(int id)
         {
-            var match = _context.Match.Find(id);
+            var match = await _matchService.GetMatchByIdAsync(id);
             if (match == null)
             {
-                return NotFound();
+                return NotFound($"Match avec l'identifiant {id} introuvable.");
             }
             return Ok(match);
         }
-        [HttpGet]
-        public IActionResult GetAllMatches()
+
+        [HttpPost]
+        public async Task<IActionResult> CreateMatch([FromHeader(Name = "X-Matricule")] string matriculeOrganisateur, [FromBody] MatchCreateDtos matchDto)
         {
-            var matches = _context.Match.ToList();
-            return Ok(matches);
-        }
-        [HttpDelete("{id}")]
-        public IActionResult DeleteMatch(int id)
-        {
-            var match = _context.Match.Find(id);
-            if (match == null)
+            if (string.IsNullOrWhiteSpace(matriculeOrganisateur))
             {
-                return NotFound();
+                return BadRequest("Le matricule de l'organisateur est requis dans l'en-tête X-Matricule.");
             }
-            _context.Match.Remove(match);
-            _context.SaveChanges();
-            return NoContent();
+
+            try
+            {
+                var matchCree = await _matchService.CreerReservationAsync(matriculeOrganisateur, matchDto);
+                return CreatedAtAction(nameof(GetMatchById), new { id = matchCree.IdMatch }, matchCree);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Une erreur inattendue est survenue lors de la création de la réservation.");
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteMatch(int id, [FromHeader(Name = "X-Matricule")] string matriculeDemandeur)
+        {
+            if (string.IsNullOrWhiteSpace(matriculeDemandeur))
+            {
+                return BadRequest("Le matricule du demandeur est requis dans l'en-tête X-Matricule.");
+            }
+
+            try
+            {
+                await _matchService.AnnulerMatchAsync(id, matriculeDemandeur);
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Une erreur inattendue est survenue lors de l'annulation du match.");
+            }
         }
     }
 }
