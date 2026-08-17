@@ -1,131 +1,86 @@
+using Microsoft.AspNetCore.Mvc;
+using Padel.SGBD.Api.Services.Interfaces;
+
 namespace Padel.SGBD.Api.Controllers
 {
-    using Microsoft.AspNetCore.Mvc;
-    using Padel.SGBD.Api.Data;
-    using Padel.SGBD.Api.Dtos;
-    using Padel.SGBD.Api.Model;
-    using System.Linq;
-    using System;
-
     [ApiController]
     [Route("api/[controller]")]
     public class ParticipationController : ControllerBase
     {
-        private readonly PadelSGBDContext _context;
+        private readonly IParticipationService _participationService;
 
-        public ParticipationController(PadelSGBDContext context)
+        public ParticipationController(IParticipationService participationService)
         {
-            _context = context;
+            _participationService = participationService;
         }
 
-        [HttpPost]
-        public IActionResult CreateParticipation([FromBody] ParticipationCreateDtos participationDto)
+        [HttpPost("matchs/{idMatch}/rejoindre")]
+        public async Task<IActionResult> RejoindreMatch(int idMatch, [FromHeader(Name = "X-Matricule")] string matricule)
         {
-            if (participationDto == null)
+            if (string.IsNullOrWhiteSpace(matricule))
             {
-                return BadRequest("Participation data is required.");
+                return BadRequest("Le matricule du joueur est requis dans l'en-tête X-Matricule.");
             }
 
-            // Vérifier que le membre existe
-            var membre = _context.Membres.Find(participationDto.Matricule);
-            if (membre == null)
-            {
-                return NotFound($"Membre with Matricule {participationDto.Matricule} not found.");
-            }
-
-            // Vérifier que le match existe
-            var match = _context.Match.Find(participationDto.IdMatch);
-            if (match == null)
-            {
-                return NotFound($"Match with Id {participationDto.IdMatch} not found.");
-            }
-
-           // Bloc unique pour la création et la gestion du Trigger SQL
             try
             {
-                var participation = new Participations
-                {
-                    Matricule = participationDto.Matricule,
-                    IdMatch = participationDto.IdMatch,
-                    EstOrganisateur = participationDto.EstOrganisateur
-                };
-
-                _context.Participations.Add(participation);
-                _context.SaveChanges();
-
-                return CreatedAtAction(nameof(GetParticipation), 
-                    new { matricule = participation.Matricule, idMatch = participation.IdMatch }, 
-                    participation);
+                var participation = await _participationService.RejoindreMatchAsync(matricule, idMatch);
+                return Ok(participation);
             }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+            catch (InvalidOperationException ex)
             {
-                // On vérifie si l'erreur d'origine (InnerException) est bien notre erreur SQL 50000
-                if (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx && sqlEx.Number == 50000)
-                {
-                    // On renvoie un code 400 avec le texte exact du RAISERROR
-                    return BadRequest(sqlEx.Message);
-                }
-                
-                // Si c'est une autre erreur de base de données
-                return StatusCode(500, "Erreur de base de données : " + ex.InnerException?.Message);
+                return BadRequest(ex.Message);
             }
             catch (Exception)
             {
-                return StatusCode(500, "Une erreur inattendue est survenue lors de l'inscription.");
+                return StatusCode(500, "Une erreur inattendue est survenue lors de l'inscription au match.");
             }
         }
 
-        [HttpGet("{matricule}/{idMatch}")]
-        public IActionResult GetParticipation(string matricule, int idMatch)
+        [HttpPost("matchs/{idMatch}/payer")]
+        public async Task<IActionResult> PayerParticipation(int idMatch, [FromHeader(Name = "X-Matricule")] string matricule, [FromQuery] decimal montant = 15.00m)
         {
-            var participation = _context.Participations.Find(matricule, idMatch);
-            if (participation == null)
+            if (string.IsNullOrWhiteSpace(matricule))
             {
-                return NotFound($"Participation with Matricule {matricule} and IdMatch {idMatch} not found.");
+                return BadRequest("Le matricule du joueur est requis dans l'en-tête X-Matricule.");
             }
-            return Ok(participation);
+
+            try
+            {
+                await _participationService.EnregistrerPaiementAsync(matricule, idMatch, montant);
+                return Ok(new { message = $"Paiement de {montant} € enregistré avec succès pour le joueur {matricule}." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Une erreur inattendue est survenue lors du paiement.");
+            }
         }
 
-        [HttpDelete("{matricule}/{idMatch}")]
-        public IActionResult DeleteParticipation(string matricule, int idMatch)
+        [HttpDelete("matchs/{idMatch}/quitter")]
+        public async Task<IActionResult> QuitterMatch(int idMatch, [FromHeader(Name = "X-Matricule")] string matricule)
         {
-            var participation = _context.Participations.Find(matricule, idMatch);
-            if (participation == null)
+            if (string.IsNullOrWhiteSpace(matricule))
             {
-                return NotFound($"Participation with Matricule {matricule} and IdMatch {idMatch} not found.");
-            }
-            _context.Participations.Remove(participation);
-            _context.SaveChanges();
-            return NoContent();
-        }
-
-        [HttpPut("{matricule}/{idMatch}")]
-        public IActionResult UpdateParticipation(string matricule, int idMatch, [FromBody] ParticipationCreateDtos participationDto)
-        {
-            if (participationDto == null)
-            {
-                return BadRequest("Participation data is required.");
+                return BadRequest("Le matricule du joueur est requis dans l'en-tête X-Matricule.");
             }
 
-            var participation = _context.Participations.Find(matricule, idMatch);
-            if (participation == null)
+            try
             {
-                return NotFound($"Participation with Matricule {matricule} and IdMatch {idMatch} not found.");
+                await _participationService.QuitterMatchAsync(matricule, idMatch);
+                return NoContent();
             }
-
-            participation.EstOrganisateur = participationDto.EstOrganisateur;
-
-            _context.Participations.Update(participation);
-            _context.SaveChanges();
-
-            return NoContent();
-        }
-
-        [HttpGet]
-        public IActionResult GetAllParticipations()
-        {
-            var participations = _context.Participations.ToList();
-            return Ok(participations);
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Une erreur inattendue est survenue lors de l'annulation de la participation.");
+            }
         }
     }
 }
