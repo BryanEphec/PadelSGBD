@@ -54,14 +54,7 @@ namespace Padel.SGBD.Api.Services
                 throw new InvalidOperationException($"Réservation impossible : vous êtes sous pénalité jusqu'au {membre.DateFinPenalite.Value:dd/MM/yyyy HH:mm}.");
             }
 
-            // 4. Vérification du terrain
-            var terrain = await _context.Terrains.Include(t => t.Site).FirstOrDefaultAsync(t => t.IdTerrain == dto.IdTerrain);
-            if (terrain == null)
-            {
-                throw new InvalidOperationException("Le terrain spécifié n'existe pas.");
-            }
-
-            // 5. Vérification des délais de réservation selon le type de membre
+            // 4. Vérification des délais de réservation selon le type de membre
             var maintenant = DateTime.Now;
             var delaiMax = membre.Type.ToUpper() switch
             {
@@ -79,6 +72,13 @@ namespace Padel.SGBD.Api.Services
             if (dto.DateHeure > maintenant.Add(delaiMax))
             {
                 throw new InvalidOperationException($"Votre statut ({membre.Type}) ne vous autorise à réserver que jusqu'au {maintenant.Add(delaiMax):dd/MM/yyyy}.");
+            }
+
+            // 5. Vérification du terrain
+            var terrain = await _context.Terrains.Include(t => t.Site).FirstOrDefaultAsync(t => t.IdTerrain == dto.IdTerrain);
+            if (terrain == null)
+            {
+                throw new InvalidOperationException("Le terrain spécifié n'existe pas.");
             }
 
             // Vérification du site de rattachement pour Membre S
