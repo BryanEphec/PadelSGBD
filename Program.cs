@@ -22,9 +22,10 @@ builder.Services.AddCors(options =>
                         .AllowAnyMethod()
                         .AllowAnyHeader());
 });
+builder.Services.AddScoped<IParticipationRepository, ParticipationRepository>();
 builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 builder.Services.AddScoped<IMembreRepository, MembreRepository>();
-
+builder.Services.AddScoped<IParticipationService, ParticipationService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
 var app = builder.Build();
 
