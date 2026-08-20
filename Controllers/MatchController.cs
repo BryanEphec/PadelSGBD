@@ -50,9 +50,16 @@ namespace Padel.SGBD.Api.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, "Une erreur inattendue est survenue lors de la création de la réservation.");
+                Console.WriteLine($"[ERREUR CRÉATION MATCH] : {ex.Message}");
+                Console.WriteLine($"[STACKTRACE] : {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"[INNER EXCEPTION] : {ex.InnerException.Message}");
+                }
+
+                return StatusCode(500, $"Erreur interne : {ex.Message} -> {ex.InnerException?.Message}");
             }
         }
 
@@ -73,8 +80,9 @@ namespace Padel.SGBD.Api.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"[ERREUR SUPPRESSION MATCH] : {ex.Message}");
                 return StatusCode(500, "Une erreur inattendue est survenue lors de l'annulation du match.");
             }
         }

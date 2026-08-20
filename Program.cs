@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Padel.SGBD.Api.Data;
 using Padel.SGBD.Api.Repositories;
@@ -13,7 +14,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<PadelSGBDContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddControllers(); 
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddOpenApi();
 builder.Services.AddCors(options =>
 {
