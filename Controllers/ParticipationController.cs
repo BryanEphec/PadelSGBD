@@ -82,5 +82,22 @@ namespace Padel.SGBD.Api.Controllers
                 return StatusCode(500, "Une erreur inattendue est survenue lors de l'annulation de la participation.");
             }
         }
+        [HttpPost("matchs/{idMatch}/traiter-impayes")]
+public async Task<IActionResult> TraiterImpayes(int idMatch)
+{
+    try
+    {
+        await _participationService.TraiterImpayesEtPenalitesAsync(idMatch);
+        return Ok("Traitement des impayés et pénalités effectué avec succès.");
+    }
+    catch (InvalidOperationException ex)
+    {
+        return BadRequest(ex.Message);
+    }
+    catch (Exception)
+    {
+        return StatusCode(500, "Erreur lors du traitement des impayés.");
+    }
+}
     }
 }

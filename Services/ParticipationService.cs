@@ -1,4 +1,5 @@
 using Padel.SGBD.Api.Model;
+using Padel.SGBD.Api.Repositories;
 using Padel.SGBD.Api.Repositories.Interfaces;
 using Padel.SGBD.Api.Services.Interfaces;
 
@@ -103,5 +104,23 @@ namespace Padel.SGBD.Api.Services
 
             await _participationRepo.DeleteAsync(matricule, idMatch);
         }
+        public async Task TraiterImpayesEtPenalitesAsync(int idMatch)
+{
+    var match = await _matchRepo.GetMatchByIdAsync(idMatch);
+    if (match == null) return;
+
+    var participations = match.Participations.Where(p => !p.APaye).ToList();
+    foreach (var participation in participations)
+    {
+        var membre = await _membreRepo.GetByMatriculeAsync(participation.Matricule);
+        if (membre != null)
+        {
+            // Attribution d'une dette de 15 € et d'une pénalité de réservation de 1 mois
+            membre.SoldeDu += 15.00m;
+            membre.DateFinPenalite = DateTime.Now.AddDays(30);
+            await _membreRepo.UpdateAsync(membre);
+        }
+    }
+}
     }
 }
