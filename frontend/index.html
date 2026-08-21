@@ -9,9 +9,9 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-    <!-- Header & Sélecteur de Joueur -->
+    <!-- Header & Sélecteur de Joueur Dynamique -->
     <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <div class="bg-emerald-500 text-slate-950 p-2 rounded-xl text-xl font-bold">
                     <i class="fa-solid fa-table-tennis-paddle-ball"></i>
@@ -22,14 +22,14 @@
                 </div>
             </div>
 
+            <!-- Sélecteur de Joueur + Statut Réel -->
             <div class="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700">
                 <label for="select-player" class="text-xs text-slate-400 font-medium">Joueur actif :</label>
                 <select id="select-player" onchange="onPlayerChange()" class="bg-slate-800 text-emerald-400 font-bold text-sm rounded-lg px-2 py-1 border border-slate-600 focus:outline-none focus:border-emerald-500">
-                    <option value="M001">M001 - Dupont Jean (G)</option>
-                    <option value="M002">M002 - Martin Claire (S)</option>
-                    <option value="M003">M003 - Durand Luc (L)</option>
-                    <option value="M004">M004 - Lefebvre Sophie (G)</option>
+                    <option value="">Chargement...</option>
                 </select>
+                <!-- Badge de Solde / Pénalité -->
+                <div id="player-badge" class="text-xs px-2.5 py-1 rounded-full font-semibold"></div>
             </div>
         </div>
     </header>
@@ -76,7 +76,7 @@
                 <h2 class="text-lg font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-list-check text-emerald-400"></i> Matchs Programmés
                 </h2>
-                <button onclick="fetchMatches()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                <button onclick="refreshAll()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition">
                     <i class="fa-solid fa-rotate"></i> Actualiser
                 </button>
             </div>
@@ -89,20 +89,71 @@
     <script>
         const API = '/api';
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             const nextSlot = new Date();
             nextSlot.setDate(nextSlot.getDate() + 2);
             nextSlot.setHours(18, 0, 0, 0);
             document.getElementById('res-date').value = nextSlot.toISOString().slice(0, 16);
-            fetchMatches();
+            
+            await fetchMembres();
+            await fetchMatches();
         });
 
         function getMatricule() {
             return document.getElementById('select-player').value;
         }
 
-        function onPlayerChange() {
-            fetchMatches();
+        async function fetchMembres() {
+            try {
+                const res = await fetch(`${API}/Membre`);
+                if (!res.ok) throw new Error();
+                const membres = await res.json();
+                
+                const select = document.getElementById('select-player');
+                select.innerHTML = membres.map(m => 
+                    `<option value="${m.matricule}">${m.matricule} - ${m.nom} ${m.prenom} (${m.type})</option>`
+                ).join('');
+
+                await updatePlayerBadge();
+            } catch (err) {
+                console.error("Erreur lors de la récupération des membres", err);
+            }
+        }
+
+        async function updatePlayerBadge() {
+            const matricule = getMatricule();
+            const badge = document.getElementById('player-badge');
+            if (!matricule) return;
+
+            try {
+                const res = await fetch(`${API}/Membre/${matricule}`);
+                if (!res.ok) throw new Error();
+                const m = await res.json();
+
+                const solde = m.soldeDu || 0;
+                const penalite = m.dateFinPenalite ? new Date(m.dateFinPenalite) : null;
+                const isPenalise = penalite && penalite > new Date();
+
+                if (solde > 0 || isPenalise) {
+                    badge.className = "text-xs px-2.5 py-1 rounded-full font-semibold bg-rose-950 text-rose-300 border border-rose-800 animate-pulse";
+                    badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Dette: ${solde.toFixed(2)} € ${isPenalise ? '(Pénalisé)' : ''}`;
+                } else {
+                    badge.className = "text-xs px-2.5 py-1 rounded-full font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> En règle (0.00 €)`;
+                }
+            } catch {
+                badge.className = "hidden";
+            }
+        }
+
+        async function onPlayerChange() {
+            await updatePlayerBadge();
+            await fetchMatches();
+        }
+
+        async function refreshAll() {
+            await updatePlayerBadge();
+            await fetchMatches();
         }
 
         function showToast(message, isError = false) {
@@ -250,7 +301,7 @@
                 }
 
                 showToast('Réservation effectuée avec succès !');
-                fetchMatches();
+                await refreshAll();
             } catch (err) {
                 showToast(err.message, true);
             }
@@ -267,7 +318,7 @@
                 if (!res.ok) throw new Error(await res.text() || 'Impossible de rejoindre ce match.');
 
                 showToast('Inscription au match validée !');
-                fetchMatches();
+                await refreshAll();
             } catch (err) {
                 showToast(err.message, true);
             }
@@ -284,7 +335,7 @@
                 if (!res.ok) throw new Error(await res.text() || 'Échec du paiement.');
 
                 showToast('Paiement de 15 € enregistré !');
-                fetchMatches();
+                await refreshAll();
             } catch (err) {
                 showToast(err.message, true);
             }
@@ -301,7 +352,7 @@
                 if (!res.ok) throw new Error(await res.text() || 'Impossible de quitter.');
 
                 showToast('Participation annulée.');
-                fetchMatches();
+                await refreshAll();
             } catch (err) {
                 showToast(err.message, true);
             }
@@ -320,7 +371,7 @@
                 if (!res.ok) throw new Error(await res.text() || "Échec de l'annulation.");
 
                 showToast('Match annulé avec succès.');
-                fetchMatches();
+                await refreshAll();
             } catch (err) {
                 showToast(err.message, true);
             }
