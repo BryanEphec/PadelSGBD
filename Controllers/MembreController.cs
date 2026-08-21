@@ -53,5 +53,23 @@ namespace Padel.SGBD.Api.Controllers
             var membres = _context.Membres.ToList();
             return Ok(membres);
         }
+        [HttpPost("{matricule}/regulariser")]
+public async Task<IActionResult> RegulariserMembre(string matricule)
+{
+    var membre = await _context.Membres.FindAsync(matricule);
+    if (membre == null)
+    {
+        return NotFound("Membre introuvable.");
+    }
+
+    // Réinitialisation de la dette et levée de la suspension
+    membre.SoldeDu = 0.00m;
+    membre.DateFinPenalite = null;
+    membre.SousPenalite = false;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = $"Le membre {matricule} ({membre.Nom} {membre.Prenom}) a été entièrement régularisé." });
+}
     }
 }
