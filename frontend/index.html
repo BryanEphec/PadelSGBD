@@ -3,102 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Padel Club - Espace Joueur</title>
+    <title>Padel Club - Gestion & Réservations</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-    <!-- Header & Sélecteur de Joueur Dynamique -->
+    <!-- En-tête / Barre de Navigation avec Onglets -->
     <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Titre -->
             <div class="flex items-center gap-3">
                 <div class="bg-emerald-500 text-slate-950 p-2 rounded-xl text-xl font-bold">
                     <i class="fa-solid fa-table-tennis-paddle-ball"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-wide">Padel Booking</h1>
-                    <p class="text-xs text-slate-400">Espace Réservation & Matchs</p>
+                    <h1 class="text-xl font-bold tracking-wide text-white">Padel Club</h1>
+                    <p class="text-xs text-slate-400">Plateforme Centrale de Réservation</p>
                 </div>
             </div>
 
-            <!-- Sélecteur de Joueur + Statut Réel -->
-            <div class="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700">
-                <label for="select-player" class="text-xs text-slate-400 font-medium">Joueur actif :</label>
-                <select id="select-player" onchange="onPlayerChange()" class="bg-slate-800 text-emerald-400 font-bold text-sm rounded-lg px-2 py-1 border border-slate-600 focus:outline-none focus:border-emerald-500">
+            <!-- Onglets Joueur / Admin -->
+            <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700">
+                <button id="tab-btn-joueur" onclick="switchTab('joueur')" class="px-4 py-2 rounded-lg text-xs font-bold transition duration-150 flex items-center gap-2 bg-emerald-500 text-slate-950 shadow">
+                    <i class="fa-solid fa-user"></i> Espace Joueur
+                </button>
+                <button id="tab-btn-admin" onclick="switchTab('admin')" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition duration-150 flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved"></i> Espace Admin
+                </button>
+            </div>
+
+            <!-- Sélecteur Joueur Actif (Visible en mode joueur) -->
+            <div id="player-selector-wrapper" class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
+                <label for="select-player" class="text-xs text-slate-400 font-medium">Joueur :</label>
+                <select id="select-player" onchange="onPlayerChange()" class="bg-slate-800 text-emerald-400 font-bold text-xs rounded-lg px-2 py-1 border border-slate-600 focus:outline-none focus:border-emerald-500">
                     <option value="">Chargement...</option>
                 </select>
-                <!-- Badge de Solde / Pénalité -->
-                <div id="player-badge" class="text-xs px-2.5 py-1 rounded-full font-semibold"></div>
+                <!-- Badge de Solde / Statut -->
+                <div id="player-badge" class="text-xs px-2 py-0.5 rounded-full font-semibold"></div>
             </div>
+
         </div>
     </header>
 
-    <!-- Toast Notification -->
+    <!-- Notification Toast Flottante -->
     <div id="toast" class="fixed bottom-5 right-5 z-50 transition-all duration-300 transform translate-y-20 opacity-0 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium flex items-center gap-3"></div>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <main class="max-w-7xl mx-auto px-4 py-8">
 
-        <!-- Formulaire de Réservation -->
-        <section class="lg:col-span-1 bg-slate-800/60 p-6 rounded-2xl border border-slate-700 shadow-lg h-fit">
-            <h2 class="text-lg font-bold mb-4 text-emerald-400 flex items-center gap-2">
-                <i class="fa-solid fa-calendar-plus"></i> Nouveau Match
-            </h2>
-
-            <form id="form-reservation" onsubmit="handleCreateMatch(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Terrain</label>
-                    <select id="res-terrain" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
-                        <option value="1">Court 1 (Intérieur - Site Central)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Date et Heure</label>
-                    <input type="datetime-local" id="res-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none text-slate-200">
-                    <p class="text-[10px] text-slate-400 mt-1">Durée : 1h30 (+ 15 min battement)</p>
-                </div>
-
-                <div class="flex items-center gap-2 pt-1">
-                    <input type="checkbox" id="res-prive" class="w-4 h-4 text-emerald-500 bg-slate-900 border-slate-700 rounded focus:ring-0">
-                    <label for="res-prive" class="text-xs text-slate-300">Match Privé</label>
-                </div>
-
-                <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl transition duration-200 shadow-md text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-check"></i> Réserver le terrain (60 €)
-                </button>
-            </form>
-        </section>
-
-        <!-- Liste des Matchs -->
-        <section class="lg:col-span-2 space-y-4">
-            <div class="flex items-center justify-between mb-2">
-                <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-list-check text-emerald-400"></i> Matchs Programmés
+        <!-- ================= ONGLET 1 : ESPACE JOUEUR ================= -->
+        <div id="view-joueur" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Colonne Gauche : Formulaire de réservation -->
+            <section class="lg:col-span-1 bg-slate-800/60 p-6 rounded-2xl border border-slate-700 shadow-lg h-fit">
+                <h2 class="text-lg font-bold mb-4 text-emerald-400 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-plus"></i> Nouveau Match
                 </h2>
-                <button onclick="refreshAll()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition">
-                    <i class="fa-solid fa-rotate"></i> Actualiser
-                </button>
-            </div>
 
-            <div id="matches-list" class="grid grid-cols-1 gap-4"></div>
-        </section>
+                <form id="form-reservation" onsubmit="handleCreateMatch(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Terrain</label>
+                        <select id="res-terrain" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                            <option value="1">Court 1 (Intérieur - Site Central)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Date et Heure</label>
+                        <input type="datetime-local" id="res-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none text-slate-200">
+                        <p class="text-[10px] text-slate-400 mt-1">Durée : 1h30 (+ 15 min battement)</p>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-1">
+                        <input type="checkbox" id="res-prive" class="w-4 h-4 text-emerald-500 bg-slate-900 border-slate-700 rounded focus:ring-0">
+                        <label for="res-prive" class="text-xs text-slate-300">Match Privé</label>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl transition duration-200 shadow-md text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check"></i> Réserver le terrain (60 €)
+                    </button>
+                </form>
+            </section>
+
+            <!-- Colonne Droite : Liste des Matchs -->
+            <section class="lg:col-span-2 space-y-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-emerald-400"></i> Matchs Programmés
+                    </h2>
+                    <button onclick="refreshJoueur()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                        <i class="fa-solid fa-rotate"></i> Actualiser
+                    </button>
+                </div>
+
+                <div id="matches-list" class="grid grid-cols-1 gap-4"></div>
+            </section>
+
+        </div>
+
+        <!-- ================= ONGLET 2 : ESPACE ADMIN ================= -->
+        <div id="view-admin" class="hidden space-y-8">
+            
+            <!-- Tableau de Gestion des Membres & Régularisations -->
+            <section class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-users text-amber-400"></i> Administration des Membres & Impayés
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Régularisez instantanément les dettes et levez les suspensions des joueurs.</p>
+                    </div>
+                    <button onclick="fetchMembresAdmin()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition w-fit">
+                        <i class="fa-solid fa-rotate"></i> Actualiser la liste
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase bg-slate-900/40">
+                                <th class="py-3 px-4">Matricule</th>
+                                <th class="py-3 px-4">Membre</th>
+                                <th class="py-3 px-4">Type</th>
+                                <th class="py-3 px-4">Solde Dû</th>
+                                <th class="py-3 px-4">Statut</th>
+                                <th class="py-3 px-4 text-right">Action Admin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-membres-tbody" class="divide-y divide-slate-700/60">
+                            <tr>
+                                <td colspan="6" class="text-center py-6 text-slate-500">Chargement des membres...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Déclencheur des sanctions de match -->
+            <section class="bg-slate-800/60 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-gavel text-rose-400"></i> Clôture & Sanction des Impayés par Match
+                </h2>
+                <p class="text-xs text-slate-400 mb-4">
+                    Applique automatiquement 15 € de dette et 30 jours de pénalité à tous les participants non réglés sur le match ciblé.
+                </p>
+
+                <form onsubmit="handleAdminSanctions(event)" class="flex flex-col sm:flex-row items-center gap-3">
+                    <input type="number" id="admin-match-id" placeholder="ID du Match (ex: 2)" required class="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:border-amber-500 focus:outline-none text-slate-200">
+                    <button type="submit" class="w-full sm:w-auto bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition duration-200 shadow-md flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bolt"></i> Traiter les impayés du match
+                    </button>
+                </form>
+            </section>
+
+        </div>
 
     </main>
 
     <script>
         const API = '/api';
 
+        // Initialisation
         window.addEventListener('DOMContentLoaded', async () => {
             const nextSlot = new Date();
             nextSlot.setDate(nextSlot.getDate() + 2);
             nextSlot.setHours(18, 0, 0, 0);
             document.getElementById('res-date').value = nextSlot.toISOString().slice(0, 16);
-            
+
             await fetchMembres();
             await fetchMatches();
         });
 
+        // ---------------- GESTION DES ONGLETS ----------------
+        function switchTab(tab) {
+            const viewJoueur = document.getElementById('view-joueur');
+            const viewAdmin = document.getElementById('view-admin');
+            const btnJoueur = document.getElementById('tab-btn-joueur');
+            const btnAdmin = document.getElementById('tab-btn-admin');
+
+            if (tab === 'joueur') {
+                viewJoueur.classList.remove('hidden');
+                viewAdmin.classList.add('hidden');
+
+                btnJoueur.className = "px-4 py-2 rounded-lg text-xs font-bold transition duration-150 flex items-center gap-2 bg-emerald-500 text-slate-950 shadow";
+                btnAdmin.className = "px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition duration-150 flex items-center gap-2";
+                refreshJoueur();
+            } else {
+                viewJoueur.classList.add('hidden');
+                viewAdmin.classList.remove('hidden');
+
+                btnAdmin.className = "px-4 py-2 rounded-lg text-xs font-bold transition duration-150 flex items-center gap-2 bg-amber-500 text-slate-950 shadow";
+                btnJoueur.className = "px-4 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition duration-150 flex items-center gap-2";
+                fetchMembresAdmin();
+            }
+        }
+
+        // ---------------- LOGIQUE JOUEUR ----------------
         function getMatricule() {
             return document.getElementById('select-player').value;
         }
@@ -108,7 +210,7 @@
                 const res = await fetch(`${API}/Membre`);
                 if (!res.ok) throw new Error();
                 const membres = await res.json();
-                
+
                 const select = document.getElementById('select-player');
                 select.innerHTML = membres.map(m => 
                     `<option value="${m.matricule}">${m.matricule} - ${m.nom} ${m.prenom} (${m.type})</option>`
@@ -132,14 +234,14 @@
 
                 const solde = m.soldeDu || 0;
                 const penalite = m.dateFinPenalite ? new Date(m.dateFinPenalite) : null;
-                const isPenalise = penalite && penalite > new Date();
+                const isPenalise = (penalite && penalite > new Date()) || m.sousPenalite;
 
                 if (solde > 0 || isPenalise) {
-                    badge.className = "text-xs px-2.5 py-1 rounded-full font-semibold bg-rose-950 text-rose-300 border border-rose-800 animate-pulse";
-                    badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Dette: ${solde.toFixed(2)} € ${isPenalise ? '(Pénalisé)' : ''}`;
+                    badge.className = "text-xs px-2.5 py-0.5 rounded-full font-semibold bg-rose-950 text-rose-300 border border-rose-800 animate-pulse";
+                    badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${solde.toFixed(2)} € ${isPenalise ? '(Pénalisé)' : ''}`;
                 } else {
-                    badge.className = "text-xs px-2.5 py-1 rounded-full font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800";
-                    badge.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> En règle (0.00 €)`;
+                    badge.className = "text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> En règle`;
                 }
             } catch {
                 badge.className = "hidden";
@@ -151,7 +253,7 @@
             await fetchMatches();
         }
 
-        async function refreshAll() {
+        async function refreshJoueur() {
             await updatePlayerBadge();
             await fetchMatches();
         }
@@ -170,14 +272,14 @@
         async function fetchMatches() {
             try {
                 const res = await fetch(`${API}/Match`);
-                if (!res.ok) throw new Error('Erreur lors du chargement des matchs.');
+                if (!res.ok) throw new Error();
                 const matches = await res.json();
                 renderMatches(matches);
             } catch (err) {
                 document.getElementById('matches-list').innerHTML = `
                     <div class="bg-slate-800/40 border border-slate-700 p-8 rounded-2xl text-center text-slate-400">
                         <i class="fa-regular fa-calendar-xmark text-4xl mb-2 text-slate-500"></i>
-                        <p>Aucun match programmé pour le moment.</p>
+                        <p>Aucun match disponible.</p>
                     </div>`;
             }
         }
@@ -295,13 +397,10 @@
                     body: JSON.stringify({ idTerrain, dateHeure, estPrive })
                 });
 
-                if (!res.ok) {
-                    const err = await res.text();
-                    throw new Error(err || 'Erreur lors de la réservation.');
-                }
+                if (!res.ok) throw new Error(await res.text() || 'Erreur lors de la réservation.');
 
                 showToast('Réservation effectuée avec succès !');
-                await refreshAll();
+                await refreshJoueur();
             } catch (err) {
                 showToast(err.message, true);
             }
@@ -318,7 +417,7 @@
                 if (!res.ok) throw new Error(await res.text() || 'Impossible de rejoindre ce match.');
 
                 showToast('Inscription au match validée !');
-                await refreshAll();
+                await refreshJoueur();
             } catch (err) {
                 showToast(err.message, true);
             }
@@ -334,8 +433,8 @@
 
                 if (!res.ok) throw new Error(await res.text() || 'Échec du paiement.');
 
-                showToast('Paiement de 15 € enregistré !');
-                await refreshAll();
+                showToast('Paiement de 15 € validé !');
+                await refreshJoueur();
             } catch (err) {
                 showToast(err.message, true);
             }
@@ -352,7 +451,7 @@
                 if (!res.ok) throw new Error(await res.text() || 'Impossible de quitter.');
 
                 showToast('Participation annulée.');
-                await refreshAll();
+                await refreshJoueur();
             } catch (err) {
                 showToast(err.message, true);
             }
@@ -371,7 +470,109 @@
                 if (!res.ok) throw new Error(await res.text() || "Échec de l'annulation.");
 
                 showToast('Match annulé avec succès.');
-                await refreshAll();
+                await refreshJoueur();
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        // ---------------- LOGIQUE ADMIN ----------------
+        async function fetchMembresAdmin() {
+            try {
+                const res = await fetch(`${API}/Membre`);
+                if (!res.ok) throw new Error();
+                const membres = await res.json();
+                renderMembresAdmin(membres);
+            } catch (err) {
+                document.getElementById('admin-membres-tbody').innerHTML = `
+                    <tr><td colspan="6" class="text-center py-6 text-rose-400">Erreur lors de la récupération des données membres.</td></tr>`;
+            }
+        }
+
+        function renderMembresAdmin(membres) {
+            const tbody = document.getElementById('admin-membres-tbody');
+            if (!membres || membres.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500">Aucun membre trouvé.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = membres.map(m => {
+                const solde = m.soldeDu || 0;
+                const penalite = m.dateFinPenalite ? new Date(m.dateFinPenalite) : null;
+                const isPenalise = (penalite && penalite > new Date()) || m.sousPenalite;
+                const hasDette = solde > 0;
+
+                let statusBadge = '';
+                if (hasDette || isPenalise) {
+                    statusBadge = `
+                        <span class="inline-flex items-center gap-1 bg-rose-950 text-rose-300 border border-rose-800 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                            <i class="fa-solid fa-circle-xmark"></i> ${isPenalise ? 'Suspendu' : 'Impayé'}
+                        </span>`;
+                } else {
+                    statusBadge = `
+                        <span class="inline-flex items-center gap-1 bg-emerald-950 text-emerald-300 border border-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                            <i class="fa-solid fa-circle-check"></i> En règle
+                        </span>`;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 font-mono font-bold text-amber-400">${m.matricule}</td>
+                        <td class="py-3 px-4 font-medium text-slate-200">${m.nom} ${m.prenom}</td>
+                        <td class="py-3 px-4">
+                            <span class="bg-slate-700 text-slate-300 text-[11px] px-2 py-0.5 rounded font-mono">${m.type}</span>
+                        </td>
+                        <td class="py-3 px-4 font-semibold ${hasDette ? 'text-rose-400' : 'text-slate-400'}">
+                            ${solde.toFixed(2)} €
+                        </td>
+                        <td class="py-3 px-4">
+                            ${statusBadge}
+                            ${penalite && isPenalise ? `<div class="text-[10px] text-slate-400 mt-0.5">Fin : ${penalite.toLocaleDateString('fr-FR')}</div>` : ''}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            ${(hasDette || isPenalise) ? `
+                                <button onclick="regulariserMembre('${m.matricule}')" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-lg transition shadow flex items-center gap-1.5 ml-auto">
+                                    <i class="fa-solid fa-hand-holding-dollar"></i> Régulariser
+                                </button>
+                            ` : `
+                                <span class="text-xs text-slate-500 italic">À jour</span>
+                            `}
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        async function regulariserMembre(matricule) {
+            try {
+                const res = await fetch(`${API}/Membre/${matricule}/regulariser`, {
+                    method: 'POST'
+                });
+
+                if (!res.ok) throw new Error(await res.text() || 'Erreur lors de la régularisation.');
+
+                showToast(`Membre ${matricule} régularisé !`);
+                await fetchMembresAdmin();
+                await fetchMembres(); // Met à jour le sélecteur joueur
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        async function handleAdminSanctions(e) {
+            e.preventDefault();
+            const matchId = document.getElementById('admin-match-id').value;
+            if (!matchId) return;
+
+            try {
+                const res = await fetch(`${API}/Participation/matchs/${matchId}/traiter-impayes`, {
+                    method: 'POST'
+                });
+
+                if (!res.ok) throw new Error(await res.text() || "Échec du traitement des impayés.");
+
+                showToast(`Sanctions appliquées au match #${matchId} !`);
+                await fetchMembresAdmin();
+                await fetchMembres();
             } catch (err) {
                 showToast(err.message, true);
             }
