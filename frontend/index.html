@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padel Club - Espace Joueur</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+    <!-- Header & Sélecteur de Joueur -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 text-slate-950 p-2 rounded-xl text-xl font-bold">
+                    <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">Padel Booking</h1>
+                    <p class="text-xs text-slate-400">Espace Réservation & Matchs</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700">
+                <label for="select-player" class="text-xs text-slate-400 font-medium">Joueur actif :</label>
+                <select id="select-player" onchange="onPlayerChange()" class="bg-slate-800 text-emerald-400 font-bold text-sm rounded-lg px-2 py-1 border border-slate-600 focus:outline-none focus:border-emerald-500">
+                    <option value="M001">M001 - Dupont Jean (G)</option>
+                    <option value="M002">M002 - Martin Claire (S)</option>
+                    <option value="M003">M003 - Durand Luc (L)</option>
+                    <option value="M004">M004 - Lefebvre Sophie (G)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transition-all duration-300 transform translate-y-20 opacity-0 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium flex items-center gap-3"></div>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- Formulaire de Réservation -->
+        <section class="lg:col-span-1 bg-slate-800/60 p-6 rounded-2xl border border-slate-700 shadow-lg h-fit">
+            <h2 class="text-lg font-bold mb-4 text-emerald-400 flex items-center gap-2">
+                <i class="fa-solid fa-calendar-plus"></i> Nouveau Match
+            </h2>
+
+            <form id="form-reservation" onsubmit="handleCreateMatch(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Terrain</label>
+                    <select id="res-terrain" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                        <option value="1">Court 1 (Intérieur - Site Central)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Date et Heure</label>
+                    <input type="datetime-local" id="res-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none text-slate-200">
+                    <p class="text-[10px] text-slate-400 mt-1">Durée : 1h30 (+ 15 min battement)</p>
+                </div>
+
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="res-prive" class="w-4 h-4 text-emerald-500 bg-slate-900 border-slate-700 rounded focus:ring-0">
+                    <label for="res-prive" class="text-xs text-slate-300">Match Privé</label>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl transition duration-200 shadow-md text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i> Réserver le terrain (60 €)
+                </button>
+            </form>
+        </section>
+
+        <!-- Liste des Matchs -->
+        <section class="lg:col-span-2 space-y-4">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-emerald-400"></i> Matchs Programmés
+                </h2>
+                <button onclick="fetchMatches()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+                    <i class="fa-solid fa-rotate"></i> Actualiser
+                </button>
+            </div>
+
+            <div id="matches-list" class="grid grid-cols-1 gap-4"></div>
+        </section>
+
+    </main>
+
+    <script>
+        const API = '/api';
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const nextSlot = new Date();
+            nextSlot.setDate(nextSlot.getDate() + 2);
+            nextSlot.setHours(18, 0, 0, 0);
+            document.getElementById('res-date').value = nextSlot.toISOString().slice(0, 16);
+            fetchMatches();
+        });
+
+        function getMatricule() {
+            return document.getElementById('select-player').value;
+        }
+
+        function onPlayerChange() {
+            fetchMatches();
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `fixed bottom-5 right-5 z-50 transition-all duration-300 transform translate-y-0 opacity-100 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium flex items-center gap-3 ${
+                isError ? 'bg-rose-600 text-white' : 'bg-emerald-500 text-slate-950'
+            }`;
+            setTimeout(() => {
+                toast.className = toast.className.replace('translate-y-0 opacity-100', 'translate-y-20 opacity-0');
+            }, 3500);
+        }
+
+        async function fetchMatches() {
+            try {
+                const res = await fetch(`${API}/Match`);
+                if (!res.ok) throw new Error('Erreur lors du chargement des matchs.');
+                const matches = await res.json();
+                renderMatches(matches);
+            } catch (err) {
+                document.getElementById('matches-list').innerHTML = `
+                    <div class="bg-slate-800/40 border border-slate-700 p-8 rounded-2xl text-center text-slate-400">
+                        <i class="fa-regular fa-calendar-xmark text-4xl mb-2 text-slate-500"></i>
+                        <p>Aucun match programmé pour le moment.</p>
+                    </div>`;
+            }
+        }
+
+        function renderMatches(matches) {
+            const container = document.getElementById('matches-list');
+            const matricule = getMatricule();
+
+            if (!matches || matches.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-slate-800/40 border border-slate-700 p-8 rounded-2xl text-center text-slate-400">
+                        <p>Aucun créneau réservé. Utilisez le formulaire pour lancer un match !</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = matches.map(m => {
+                const dt = new Date(m.dateHeure);
+                const dateLabel = dt.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
+                const timeLabel = dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                const parts = m.participations || [];
+                const userPart = parts.find(p => p.matricule === matricule);
+                const isOrga = userPart?.estOrganisateur || false;
+                const isJoined = !!userPart;
+                const hasPaid = userPart?.aPaye || false;
+                const isFull = parts.length >= 4;
+
+                let slots = '';
+                for (let i = 0; i < 4; i++) {
+                    const p = parts[i];
+                    if (p) {
+                        slots += `
+                            <div class="flex items-center justify-between bg-slate-900 border border-slate-700 px-3 py-2 rounded-xl text-xs">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-slate-200">${p.matricule}</span>
+                                    ${p.estOrganisateur ? '<span class="bg-amber-500/20 text-amber-300 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30">Orga</span>' : ''}
+                                </div>
+                                <div>
+                                    ${p.aPaye 
+                                        ? '<span class="text-emerald-400 font-semibold"><i class="fa-solid fa-check mr-1"></i>Payé</span>' 
+                                        : '<span class="text-rose-400 font-medium"><i class="fa-solid fa-clock mr-1"></i>En attente</span>'}
+                                </div>
+                            </div>`;
+                    } else {
+                        slots += `
+                            <div class="border border-dashed border-slate-700/80 px-3 py-2 rounded-xl text-xs text-slate-500 flex items-center justify-center">
+                                Place libre
+                            </div>`;
+                    }
+                }
+
+                return `
+                    <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-md space-y-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-base font-bold text-white">${m.terrain?.nom_Terrain || 'Court ' + m.idTerrain}</span>
+                                    ${m.estPrive ? '<span class="bg-indigo-950 text-indigo-300 border border-indigo-800 text-[10px] px-2 py-0.5 rounded-full font-medium">Privé</span>' : '<span class="bg-slate-700 text-slate-300 text-[10px] px-2 py-0.5 rounded-full">Public</span>'}
+                                </div>
+                                <p class="text-xs text-slate-400 mt-0.5"><i class="fa-regular fa-clock mr-1"></i>${dateLabel} à ${timeLabel}</p>
+                            </div>
+                            <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${isFull ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'}">
+                                ${parts.length}/4 Joueurs
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            ${slots}
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-700/60 flex flex-wrap items-center justify-end gap-2">
+                            ${!isJoined && !isFull ? `
+                                <button onclick="rejoindreMatch(${m.idMatch})" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold px-3 py-2 rounded-xl transition">
+                                    <i class="fa-solid fa-user-plus mr-1"></i> Rejoindre
+                                </button>
+                            ` : ''}
+
+                            ${isJoined && !hasPaid ? `
+                                <button onclick="payerPart(${m.idMatch})" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3 py-2 rounded-xl transition">
+                                    <i class="fa-solid fa-credit-card mr-1"></i> Payer 15 €
+                                </button>
+                            ` : ''}
+
+                            ${isJoined && !isOrga ? `
+                                <button onclick="quitterMatch(${m.idMatch})" class="bg-slate-700 hover:bg-slate-600 text-rose-300 text-xs font-medium px-3 py-2 rounded-xl transition">
+                                    Quitter
+                                </button>
+                            ` : ''}
+
+                            ${isOrga ? `
+                                <button onclick="annulerMatch(${m.idMatch})" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-600/40 text-xs font-medium px-3 py-2 rounded-xl transition">
+                                    <i class="fa-solid fa-trash-can mr-1"></i> Annuler le match
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        async function handleCreateMatch(e) {
+            e.preventDefault();
+            const matricule = getMatricule();
+            const idTerrain = parseInt(document.getElementById('res-terrain').value);
+            const dateHeure = document.getElementById('res-date').value;
+            const estPrive = document.getElementById('res-prive').checked;
+
+            try {
+                const res = await fetch(`${API}/Match`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Matricule': matricule
+                    },
+                    body: JSON.stringify({ idTerrain, dateHeure, estPrive })
+                });
+
+                if (!res.ok) {
+                    const err = await res.text();
+                    throw new Error(err || 'Erreur lors de la réservation.');
+                }
+
+                showToast('Réservation effectuée avec succès !');
+                fetchMatches();
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        async function rejoindreMatch(idMatch) {
+            const matricule = getMatricule();
+            try {
+                const res = await fetch(`${API}/Participation/matchs/${idMatch}/rejoindre`, {
+                    method: 'POST',
+                    headers: { 'X-Matricule': matricule }
+                });
+
+                if (!res.ok) throw new Error(await res.text() || 'Impossible de rejoindre ce match.');
+
+                showToast('Inscription au match validée !');
+                fetchMatches();
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        async function payerPart(idMatch) {
+            const matricule = getMatricule();
+            try {
+                const res = await fetch(`${API}/Participation/matchs/${idMatch}/payer?montant=15.00`, {
+                    method: 'POST',
+                    headers: { 'X-Matricule': matricule }
+                });
+
+                if (!res.ok) throw new Error(await res.text() || 'Échec du paiement.');
+
+                showToast('Paiement de 15 € enregistré !');
+                fetchMatches();
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        async function quitterMatch(idMatch) {
+            const matricule = getMatricule();
+            try {
+                const res = await fetch(`${API}/Participation/matchs/${idMatch}/quitter`, {
+                    method: 'DELETE',
+                    headers: { 'X-Matricule': matricule }
+                });
+
+                if (!res.ok) throw new Error(await res.text() || 'Impossible de quitter.');
+
+                showToast('Participation annulée.');
+                fetchMatches();
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+
+        async function annulerMatch(idMatch) {
+            if (!confirm('Voulez-vous vraiment annuler ce match ?')) return;
+
+            const matricule = getMatricule();
+            try {
+                const res = await fetch(`${API}/Match/${idMatch}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Matricule': matricule }
+                });
+
+                if (!res.ok) throw new Error(await res.text() || "Échec de l'annulation.");
+
+                showToast('Match annulé avec succès.');
+                fetchMatches();
+            } catch (err) {
+                showToast(err.message, true);
+            }
+        }
+    </script>
+</body>
+</html>

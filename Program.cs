@@ -6,10 +6,11 @@ using Padel.SGBD.Api.Repositories.Interfaces;
 using Padel.SGBD.Api.Services;
 using Padel.SGBD.Api.Services.Interfaces;
 using Scalar.AspNetCore;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Services
+// 1. Configuration des Services & DB Context
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<PadelSGBDContext>(options =>
     options.UseSqlServer(connectionString));
@@ -17,24 +18,30 @@ builder.Services.AddDbContext<PadelSGBDContext>(options =>
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
+
 builder.Services.AddOpenApi();
+
+// Configuration CORS pour Angular / Front externe
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngular",
-        policy => policy.WithOrigins("http://localhost:4200") // Le port de ton Angular
-                        .AllowAnyMethod()
-                        .AllowAnyHeader());
+    options.AddPolicy("AllowAngular", policy =>
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyMethod()
+              .AllowAnyHeader());
 });
+
+// Injection des Dépendances (Repositories & Services)
 builder.Services.AddScoped<IParticipationRepository, ParticipationRepository>();
 builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 builder.Services.AddScoped<IMembreRepository, MembreRepository>();
 builder.Services.AddScoped<IParticipationService, ParticipationService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
+
 var app = builder.Build();
 
-// 2. Middleware (Configuration du pipeline)
+// 2. Pipeline des Middlewares
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -43,21 +50,25 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 3. Routes
-app.MapControllers(); 
-
-// Création automatique de la base de données au démarrage
-using (var scope = app.Services.CreateScope())
+// Service des fichiers statiques (wwwroot/index.html)
+app.UseStaticFiles(new StaticFileOptions
 {
-    var context = scope.ServiceProvider.GetRequiredService<PadelSGBDContext>();
-    // Cette ligne vérifie si la DB existe, sinon elle la crée
-    context.Database.EnsureCreated();
-}
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "frontend")),
+    RequestPath = ""
+});
 
+// CORS doit être placé AVANT les routes
+app.UseCors("AllowAngular");
+
+// 3. Routing & Endpoints
+app.MapControllers();
+
+// Redirection racine vers l'interface Joueur (ou Scalar selon préférence)
 app.MapGet("/", async context =>
 {
-    context.Response.Redirect("/scalar/v1");
+    context.Response.Redirect("/index.html");
     await Task.CompletedTask;
 });
-app.UseCors("AllowAngular");
+
 app.Run();
